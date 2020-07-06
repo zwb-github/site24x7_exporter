@@ -4,7 +4,7 @@ use hyper::service::{make_service_fn, service_fn};
 use hyper::{header, Body, Method, Request, Response, Server, StatusCode};
 use lazy_static::lazy_static;
 use log::{debug, error, info};
-use prometheus::{Encoder, GaugeVec, IntGaugeVec, TextEncoder};
+use prometheus::{Encoder, GaugeVec, IntGaugeVec, TextEncoder, Registry};
 use simplelog::{LevelFilter, TermLogger};
 use std::net::SocketAddr;
 use structopt::StructOpt;
@@ -14,18 +14,6 @@ mod zoho_types;
 
 lazy_static! {
     static ref CLIENT: reqwest::Client = reqwest::Client::new();
-    static ref MONITOR_UP_GAUGE: IntGaugeVec = prometheus::register_int_gauge_vec!(
-        "site24x7_monitor_up",
-        "Current health status of the monitor (1 = UP, 0 = DOWN).",
-        &["monitor_type", "monitor_name", "monitor_group", "location"]
-    )
-    .expect("Couldn't create monitor_up metric");
-    static ref MONITOR_LATENCY_SECONDS_GAUGE: GaugeVec = prometheus::register_gauge_vec!(
-        "site24x7_monitor_latency_seconds",
-        "Last measured latency in seconds.",
-        &["monitor_type", "monitor_name", "monitor_group", "location"]
-    )
-    .expect("Couldn't create monitor_latency_seconds metric");
 }
 
 #[derive(StructOpt, Clone, Debug)]
@@ -294,9 +282,21 @@ async fn hyper_service(
 
     // Update metrics based on the API data gathered above.
 
-    // Reset these first so that we don't keep seeing any deleted monitors.
+    let registry = Registry::new();
     MONITOR_UP_GAUGE.reset();
     MONITOR_LATENCY_SECONDS_GAUGE.reset();
+    static ref MONITOR_UP_GAUGE: IntGaugeVec = prometheus::register_int_gauge_vec!(
+        "site24x7_monitor_up",
+        "Current health status of the monitor (1 = UP, 0 = DOWN).",
+        &["monitor_type", "monitor_name", "monitor_group", "location"]
+    )
+    .expect("Couldn't create monitor_up metric");
+    static ref MONITOR_LATENCY_SECONDS_GAUGE: GaugeVec = prometheus::register_gauge_vec!(
+        "site24x7_monitor_latency_seconds",
+        "Last measured latency in seconds.",
+        &["monitor_type", "monitor_name", "monitor_group", "location"]
+    )
+    .expect("Couldn't create monitor_latency_seconds metric");
 
     // Monitors can either be in a flat list of plain Monitors or they can be inside of a
     // MonitorGroup with is simply a list of monitors.

@@ -14,12 +14,14 @@ This exporter currently supports these monitor types:
 - HOMEPAGE "Web Page Speed (Browser)"
 - REALBROWSER "Web Transaction (Browser)"
 
-It also supports monitor groups and exposes them via tags.
+It also supports monitor groups and exposes them via labels.
+Custom tags on monitors are exposed via labels as well.
+Sadly, the API doesn't return custom tags on monitor groups so those are not supported.
 
 ## CLI usage
 
 ```
-site24x7_exporter 0.2.2
+site24x7_exporter 0.3.0
 Sven-Hendrik Haase <svenstaro@gmail.com>
 A Prometheus compatible exporter for site24x7.com
 
@@ -140,6 +142,9 @@ purposes except for local debugging.
 
 Make sure to not poll this too often as site24x7 has API usage limits per day.
 The limit seems to be around 70000 per day so polling every 5 seconds should be safe.
+
+Custom user tags are exposed as labels with a `custom` prefix. So for instance a tag with
+key "hello" and value "there" would look like this in the output: `custom_hello="there"`
 
 ## Releasing
 
